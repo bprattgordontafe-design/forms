@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ben's Assessment Navigator</title>
+  <style>
+    html,body { height:100%; margin:0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: url('download.jpeg') center/cover no-repeat fixed;
+      color:#202124;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding: 24px;
+    }
+    .overlay {
+      /* slightly translucent panel so text is readable on the background */
+      max-width:960px;
+      margin: 28px auto;
+      background: rgba(255,255,255,0.92);
+      padding:20px 24px;
+      border-radius:8px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    }
+    .banner {
+      display:block;
+      max-width:100%;
+      height:auto;
+      margin: 0 0 12px 0;
+    }
+    p.small { margin:4px 0 12px 0; color:#444; }
+    textarea, input[type="text"] { width:100%; box-sizing:border-box; padding:10px 12px; font-size:15px; border:1px solid #d0d7de; border-radius:6px; }
+    .controls { margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; }
+    .btn { background:#0066cc; color:#fff; padding:10px 14px; text-decoration:none; border-radius:6px; border:0; cursor:pointer; font-weight:600; }
+    .btn.secondary { background:#e0e7ef; color:#111; }
+    .note { margin-top:14px; color:#666; font-size:13px; }
+    .mapping { margin-top:18px; max-height:320px; overflow:auto; border-top:1px solid #eee; padding-top:12px; }
+    table { width:100%; border-collapse:collapse; }
+    td.code { width:28%; font-weight:600; color:#222; padding:6px 8px; vertical-align:top; }
+    td.url { padding:6px 8px; font-size:13px; color:#123; word-break:break-all; }
+    @media (max-width:520px){
+      .controls { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <!-- Heading image -->
+    <img src="cooltext495618970083484.png" alt="Ben's Upload Finder" class="banner">
+
+    <p class="small">Type one or more codes (e.g. <code>solid1</code>) — separate multiple with space, comma, or newline. Then click "Open".</p>
+
+    <textarea id="codes" rows="3" placeholder="Enter codes here, e.g. solid1"></textarea>
+
+    <div class="controls">
+      <button id="openBtn" class="btn">Open</button>
+      <button id="clearBtn" class="btn secondary">Clear</button>
+    </div>
+
+    <p class="note">Tip: press Enter while focused in the box to open (Shift+Enter for newline).</p>
+
+    <div class="mapping" id="mapping">
+      <strong>Available codes</strong>
+      <table id="mapTable" aria-label="Code mapping"></table>
+    </div>
+  </div>
+
+  <!-- Add your honk audio file here (place honk.mp3 in the same folder) -->
+  <audio id="honk" src="honk.mp3" preload="auto"></audio>
+
+  <script>
+    const TASKS = {
+      "solid1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1052405",
+      "solid2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1052406",
+      "solid3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1052407",
+      "layer1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236458",
+      "layer2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236459",
+      "layer3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236460",
+      "grad1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236442",
+      "grad2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236443",
+      "grad3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236444",
+      "combo1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236513",
+      "combo2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236514",
+      "combo3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236515",
+      "combo4": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236516",
+      "combo5": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236517",
+      "combo6": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236518",
+      "oc1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236480",
+      "oc2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236481",
+      "oc3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236482",
+      "oc4": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236483",
+      "oc5": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236484",
+      "oc6": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236485",
+      "g1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236678",
+      "g2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236679",
+      "g3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236680",
+      "g4": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236681",
+      "g5": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236682",
+      "b1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236633",
+      "b2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236634",
+      "b3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236635",
+      "b4": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236636",
+      "b5": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236637",
+      "s1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236655",
+      "s2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236656",
+      "s3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236657",
+      "s4": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236658",
+      "trad1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236532",
+      "trad2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236533",
+      "trad3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236534",
+      "trad4": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236535",
+      "trad5": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236536",
+      "trad6": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236537",
+      "fh1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236555",
+      "fh2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236556",
+      "fh3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236557",
+      "fh4": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236558",
+      "fh5": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236559",
+      "fh6": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236560",
+      "t1": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236612",
+      "t2": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236613",
+      "t3": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236614",
+      "t4": "https://thegordon.trainingvc.com.au/mod/assign/view.php?id=1236615"
+    };
+
+    (function renderMapping(){
+      const table = document.getElementById('mapTable');
+      const codes = Object.keys(TASKS).sort();
+      for(let i=0;i<codes.length;i++){
+        const code = codes[i];
+        const tr = document.createElement('tr');
+        const tdCode = document.createElement('td');
+        tdCode.className = 'code';
+        tdCode.textContent = code;
+        const tdUrl = document.createElement('td');
+        tdUrl.className = 'url';
+        const a = document.createElement('a');
+        a.href = TASKS[code];
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = TASKS[code];
+        tdUrl.appendChild(a);
+        tr.appendChild(tdCode);
+        tr.appendChild(tdUrl);
+        table.appendChild(tr);
+      }
+    })();
+
+    function parseInput(raw){
+      return raw.split(/[\s,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+
+    // Play honk and open links. Browsers allow audio play on user click.
+    function openCodesWithHonk(codes){
+      const honkEl = document.getElementById('honk');
+      // play (returns promise in many browsers)
+      if(honkEl){
+        const p = honkEl.play();
+        // if play returns a promise, swallow errors silently
+        if(p && typeof p.catch === 'function'){
+          p.catch(()=>{ /* muted or autoplay blocked — ignore */ });
+        }
+      }
+
+      const opened = [];
+      const invalid = [];
+      for(const code of codes){
+        if(TASKS.hasOwnProperty(code)){
+          window.open(TASKS[code], '_blank', 'noopener');
+          opened.push(code);
+        } else {
+          invalid.push(code);
+        }
+      }
+      return { opened, invalid };
+    }
+
+    const codesEl = document.getElementById('codes');
+    const openBtn = document.getElementById('openBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function doOpen(){
+      const raw = codesEl.value || '';
+      const codes = parseInput(raw);
+      if(codes.length === 0){
+        alert('Please enter at least one code (e.g. solid1).');
+        return;
+      }
+      const result = openCodesWithHonk(codes);
+      if(result.opened.length && result.invalid.length === 0){
+        alert('Opened: ' + result.opened.join(', '));
+      } else if(result.opened.length && result.invalid.length){
+        alert('Opened: ' + result.opened.join(', ') + '\nInvalid: ' + result.invalid.join(', '));
+      } else {
+        alert('Invalid codes: ' + result.invalid.join(', '));
+      }
+    }
+
+    openBtn.addEventListener('click', doOpen);
+    clearBtn.addEventListener('click', function(){ codesEl.value = ''; codesEl.focus(); });
+
+    // allow Enter to trigger Open (Shift+Enter inserts newline)
+    codesEl.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        doOpen();
+      }
+    });
+  </script>
+</body>
+</html>
